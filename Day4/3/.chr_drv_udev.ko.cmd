@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/Day4/3/chr_drv_udev.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/device_driver_class/Day4/3/chr_drv_udev.ko /home/saravanan/Downloads/device_driver_class/Day4/3/chr_drv_udev.o /home/saravanan/Downloads/device_driver_class/Day4/3/chr_drv_udev.mod.o;  true

@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/Day3/mod_param.mod := { echo  /home/saravanan/Downloads/device_driver_class/Day3/mod_param.o;  echo; } > /home/saravanan/Downloads/device_driver_class/Day3/mod_param.mod

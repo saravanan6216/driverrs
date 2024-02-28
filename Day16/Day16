@@ -1,0 +1,180 @@
+Linux Device and Driver Model:
+--------------------------------
+
+device : A physical or virtual object which attaches to bus
+driver : A software entity which may probe for and be bound to devices,and which can perform certain management functions.
+bus : A device which serves asa an attachement point for other devices
+
+struct bus_type : USB,PCI,I2C
+struct device_driver : driver 
+struct device : device connected to bus
+
+Bus core drivers:
+--------------
+A Bus a channel between processor and one or more devices.
+For each bus supported by the kernel  there is a generic bus core driver.
+The bus core driver allocates a struct bus_type and registers with the kernel's list of bus types .
+
+struct bus_type {
+  const char * name;
+  const char * dev_name;
+  struct device * dev_root;
+  struct device_attribute * dev_attrs;
+  const struct attribute_group ** bus_groups;
+  const struct attribute_group ** dev_groups;
+  const struct attribute_group ** drv_groups;
+  int (* match) (struct device *dev, struct device_driver * );
+  int (* uevent) (struct device *dev, struct kobj_uevent_env *env);
+  int (* probe) (struct device *dev);
+  int (* remove) (struct device *dev);
+  void (* shutdown) (struct device *dev);
+  int (* online) (struct device *dev);
+  int (* offline) (struct device *dev);
+  int (* suspend) (struct device *dev, pm_message_t state);
+  int (* resume) (struct device *dev);
+  const struct dev_pm_ops * pm;
+  struct iommu_ops * iommu_ops;
+  struct subsys_private * p;
+  struct lock_class_key lock_key;
+};  
+
+
+eg: /drivers/base/platform.c
+struct bus_type platform_bus_type = {
+	.name		= "platform",
+	.dev_groups	= platform_dev_groups,
+	.match		= platform_match,
+	.uevent		= platform_uevent,
+	.probe		= platform_probe,
+	.remove		= platform_remove,
+	.shutdown	= platform_shutdown,
+	.dma_configure	= platform_dma_configure,
+	.dma_cleanup	= platform_dma_cleanup,
+	.pm		= &platform_dev_pm_ops,
+};
+EXPORT_SYMBOL_GPL(platform_bus_type);
+
+
+int __init platform_bus_init(void)
+{
+	int error;
+
+	early_platform_cleanup();
+
+	error = device_register(&platform_bus);
+	if (error) {
+		put_device(&platform_bus);
+		return error;
+	}
+	error =  bus_register(&platform_bus_type);
+	if (error)
+		device_unregister(&platform_bus);
+	of_platform_register_reconfig_notifier();
+	return error;
+}
+
+2.   struct subsys_private * p;
+     /drivers/base/base.h
+
+struct subsys_private {
+	struct kset subsys;
+	struct kset *devices_kset;
+	struct list_head interfaces;
+	struct mutex mutex;
+	struct kset *drivers_kset;
+	struct klist klist_devices;
+	struct klist klist_drivers;
+	struct blocking_notifier_head bus_notifier;
+	unsigned int drivers_autoprobe:1;
+	struct bus_type *bus;
+	struct kset glue_dirs;
+	struct class *class;
+};
+
+klist_devices : list of devices in the system that reside on this perticular type of bus. This list is updated by device_register() function, which is called when bus scaned for devices by bus controller driver(during initialisation or hot plug)
+
+klist_drivers : list of drivers that can handle devices on the that bus.this is list updated by driver_register(). which is called when a driver initialises itself.
+
+When a new device plugged into system , bus controller detects device and calls device_register().then this device is added to physical device list.
+
+The list of drivers associated with the bus is iterated over to find are there any driver that can handle the device .
+
+The match function in struct bus_type is used to check if a given driver can handle a given device .when a driver is found , the driver member of struct device is pointed to corrosponding device driver.
+
+struct device {
+	struct kobject kobj;
+	struct device		*parent;
+
+	struct device_private	*p;
+
+	const char		*init_name; /* initial name of the device */
+	const struct device_type *type;
+
+	const struct bus_type	*bus;	/* type of bus device is on */
+	struct device_driver *driver;	/* which driver has allocated this
+............
+};
+
+when a kernel module is inserted ,driver calls driver_register(), the list of devices associated with bus iterated over to find out any devices that the driver can handle by using match function.when match found , the device assocaiated with device driver and driver probe() function called. THis is called binding .
+
+When driver bind to device ?
+1. device present and driver registered
+2. driver present and device created.
+
+
+Summary:
+1. Bus drivers registers a bus in the system. allows registration of bus controller driver ,whose role is to detect devices and configure their resources.
+2. allows registration of device drivers
+3. matches the devices with drivers.
+
+
+Bus controller drivers:
+----------------------
+For specific bus there could be many diff, controllers provided by diff. vendors.
+Each of there controllers need corrosponding bus controller driver.
+The role is to maintain device model. helps to register the device driver by using driver_Register() function.
+
+In most of the cases bus controller devices are autonomous entities in the system ,discovered during kernel initialization calling of_platform_populate(), which walks through DT finding and registering these "platform controller devices" to the platform bus.
+
+Device Drivers:
+--------------
+Every device driver register itself with bus core by driver_register().After that binidng will happen.
+
+When a matching device found ,probe() function called and device configuration data 
+retrived from device tree.
+ 
+
+struct device_driver {
+	const char		*name;
+	const struct bus_type	*bus;
+
+	struct module		*owner;
+	const char		*mod_name;	/* used for built-in modules */
+
+	bool suppress_bind_attrs;	/* disables bind/unbind via sysfs */
+	enum probe_type probe_type;
+
+	const struct of_device_id	*of_match_table;
+	const struct acpi_device_id	*acpi_match_table;
+
+	int (*probe) (struct device *dev);
+	void (*sync_state)(struct device *dev);
+	int (*remove) (struct device *dev);
+	void (*shutdown) (struct device *dev);
+	int (*suspend) (struct device *dev, pm_message_t state);
+	int (*resume) (struct device *dev);
+	const struct attribute_group **groups;
+	const struct attribute_group **dev_groups;
+
+	const struct dev_pm_ops *pm;
+	void (*coredump) (struct device *dev);
+
+	struct driver_private *p;
+};
+
+bus : pointer to struct bus_type
+
+probe : callback function called for each device detected that is supported by driver.The driver should instantiate itself for each device and initialise the device aswell.
+
+remove : callback function for unbind. this happend physical remove,driver unload ,system shutdown.
+`123456

@@ -1,0 +1,215 @@
+intel x86 interupt vector table structre:
+1.linux kernel configures do_irq routine as a default response function for all external interrupts
+2.do_irq is a routine of process 0,which is responsbile for allocation of interrupt stack and invoking appropriate isr
+3.8k stack -> default, If it is 4k Stack then do_irq will allocate remaining 4k 
+
+do_irq steps:
+-------------
+1. find irq line for which irq signal was triggered
+2. look up irq descriptor table for registered isr
+3. invoke registred isr 
+4. enable irq line 
+5. execute other priority works ---> 
+
+
+all above steps are with schdular disabled ,means premtion disable 
+8. invoke process schedular
+
+interrupt latency : the amount of time system spend to serve interrupt 
+apps will stop
+blocking the interrupt of other devices
+nested irq 
+
+factors effecting latency:
+--------------------------
+1. hardware latency : amount of time cpu to jump into vector table and serve ISR.
+2. kernel latency : amount of time kernel is taking to lookup into proper isr.i.e time taken by do_irq routine to serve ISR.
+3. interrupt handler latency : time taken by isr execute
+4. soft interrupt latency : 
+5. schedular latency: This is variable time in GPOS , In RTOS its fixed time. 
+	call to schdule : 
+	1. check run queue for any high priority tasks
+	2. look for signal handler for pending signals 
+	3. assign task to cpu slice 
+
+
+Designing ISR:
+--------------
+
+Sample pesudo code of a isr handler that response to reception of new packet on network device 
+
+eg : ethernet card 
+	ISR
+	{
+		1. allocate a buffer to hold packet. // variable time operation
+		2. copy the packet from hardware to buffer // variable time operation
+		3. process physical header ,i.e packet //fixed time 
+		4. Queue packet for protocol layer. // variable time 
+	}
+
+1. not fixed time eg: malloc never return in fixed time,it depends on memory availabiltiy ,size.
+2. copy is never fixed in size. eg : virtual address to physical address mapping ,many data structures involved 
+3. processing physical header could be fixed
+4. queue is full,then its variable.
+
+packet loss , for high speed data.
+
+while implementing ISR the following issues are to be considered.
+Don'ts in ISR
+-----------
+1. Avoid calling memory allocation routine 
+2. Avoid transferring data between two buffer blocks synchronously
+3. Avoid contending for access on global data structures. because locks are applied.
+4. Avoid operations on user space address. Eg: Firmware developers.
+5. Call to schedular.Beacuse its suspended.
+6. Avoid calls to operations which are non-atomic .
+
+DO's
+----
+1. Use pre-allocated buffers eg: sk-buf in networking .
+2. Consider DMA where ever data is to be transfered between device and memory.
+3. Consider using percpu data,where ever needed .
+4. Identify non-critical work use appropriate differed routines to execute them when system is idle or other schdule time .
+
+	ISR
+	{
+		1. allocate a buffer to hold packet. // Preallocate
+		2. copy the packet from hardware to buffer // DMA
+		3. process physical header ,i.e packet //Non-critical 
+		4. Queue packet for protocol layer. //Non-critical
+		
+	}
+Non-critical : Hardware involve not required.
+	
+	ISR
+	{
+		schdule_bh(func);
+	}
+	
+	func()
+	{
+		3. process physical header ,i.e packet //Non-critical 
+		4. Queue packet for protocol layer. //Non-critical
+	}	
+
+1. Immediatly after ISR execute. refer do_irq steps
+ 
+If 5 step of do_irq is handling then it is in which context. This is called soft interrupt . 
+
+Soft IRQ: Any code that runs in the interrupt with irq enable
+
+	func()
+	{
+		3. process physical header ,i.e packet //Non-critical 
+		4. Queue packet for protocol layer. //Non-critical
+	}	
+
+Hard IRQ: Any code that runs in the interrupt with irq disable
+
+Linux provides option to execute above func() when schedular is enabled .
+Bottom half can run in sof-irq context
+proess: work process will handle bottom halfs ,work queue.
+
+
+	ISR
+	{
+		schdule_bh(func);-------|
+	}							|						
+								| -> sof-irq
+								| -> work-queues
+
+-> Which one is better choice ?
+								
+ 
+Bottom Half:  Differing the functions to execute it later, non-critical.
+----------- 
+Soft IRQ
+WorkQueue
+Tasklet
+ 
+Bottom Halves :
+============== 
+Soft IRQ : 
+-------
+1. Statically allocated at compile time ,Available only for static drivers . 
+2. Maximum of 32 softirq
+3. Premption disable, interrupt enable
+4. Activating  a soft irq :
+	- Register Soft irq : open_softirq()
+	- Raise Soft irq : raise_softirq()
+5. Executing a Softirq
+   - Return from Hardware irq code 
+   - By the ksoftirq thread
+   - code that explicitly check and execute soft-irq   
+
+#include<linux/interrupt.h>
+->softirq_action mysoftirq;
+ 
+Eg:
+<linux/interrupt.h>
+enum
+{
+        HI_SOFTIRQ=0,
+        TIMER_SOFTIRQ,
+        NET_TX_SOFTIRQ,
+        NET_RX_SOFTIRQ,
+        BLOCK_SOFTIRQ,
+        IRQ_POLL_SOFTIRQ,
+        TASKLET_SOFTIRQ,
+        SCHED_SOFTIRQ,
+        HRTIMER_SOFTIRQ, /* Unused, but kept as tools rely on the
+                            numbering. Sigh! */
+        RCU_SOFTIRQ,    /* Preferable RCU should always be the last softirq */
+		MY_SOFTIRQ,
+		
+        NR_SOFTIRQS
+};
+
+Driver init 
+{
+	open_softirq(mysoftirq,func);
+}
+
+isr
+{
+  raise_softirq(mysoftirq);
+}
+
+func()
+{
+	3. process physical header ,i.e packet //Non-critical 
+	4. Queue packet for protocol layer. //Non-critical
+}
+
+Since you are adding in interrupt.h we will use only for static 
+
+
+
+
+Execution of Soft-IRQ
+=====================
+1. When raise_softirq() gets called specified sof-irq instance is enqueued to the list of  pending soft irq (Per CPU). top half and bottom half should execute on same CPU.
+2. Pending sof-irq list is cleared by do_irq routine immediatly after ISR terminated with interrupt line enabled.
+
+
+
+
+3. 
+	func
+	{
+		writer();
+	}
+	reader()
+	{
+		spinlock_bh()
+		...........
+		spinunlock_bh()
+	}
+
+4. func()
+	{
+		writer();
+		while(1)
+		raise_softirq();
+	}	
+	Soft irq may execute in the context of ksoftirq(Per CPU kernel thread). 

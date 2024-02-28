@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day12/Module.symvers := sed 's/\.ko$$/\.o/' /home/saravanan/Downloads/Day12/modules.order | scripts/mod/modpost -m -a  -o /home/saravanan/Downloads/Day12/Module.symvers -e -i Module.symvers   -T -

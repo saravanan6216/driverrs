@@ -1,0 +1,92 @@
+IOCTL
+=======
+
+#include<linux/ioctl.h>
+ 
+int ioctl(int fd,int request,...)
+
+man 2 ioctl
+man ioctl_list
+
+ 	
+A typical Linux system contains around 450 system calls (syscalls), but only a few of them
+are linked with file operations. Sometimes devices may need to implement specific
+commands that are not provided by system calls, and especially the ones associated with
+files and thus device files. In this case, the solution is to use input/output control(ioctl),
+which is a method by which you extend a list of syscalls (actually commands) associated
+with a device. You can use it to send special commands to devices (reset, shutdown,
+configure, and so on). If the driver does not define this method, the kernel will return
+an -ENOTTY error to any ioctl() system call.
+
+
+
+
+steps:
+1. identify special operations on device
+2. create request commands
+3. implement support for commands
+
+
+
+
+In order to be valid and safe, an ioctl command needs to be identified by a number,
+which should be unique to the system. The uniqueness of ioctl numbers across the system
+will prevent it from sending the right command to the wrong device, or passing the wrong
+argument to the right command (given a duplicated ioctl number). Linux provides four
+helper macros to create an ioctl identifier, depending on whether there is data transfer or
+not and on the direction of the transfer
+
+_IO(MAGIC, SEQ_NO)
+_IOW(MAGIC, SEQ_NO, TYPE)
+_IOR(MAGIC, SEQ_NO, TYPE)
+_IORW(MAGIC, SEQ_NO, TYPE)
+
+_IO: The ioctl does not need data transfer
+_IOW: The ioctl needs write parameters (copy_from_user or get_user)
+_IOR: The ioctl needs read parameters (copy_to_user or put_user)
+_IOWR: The ioctl needs both write and read parameters
+
+1. A number coded on 8 bits (0 to 255), called a magic number
+2. A sequence number or command ID, also on 8 bits
+3. A data type, if any, that will inform the kernel about the size to be copied
+
+
+Generating ioctl numbers (command)
+-----------------------------------
+You should generate their own ioctl number in a dedicated header file. It is not mandatory,
+but it is recommended, since this header should be available in user space too. In other
+words, you should duplicate the ioctl header file so that there is one in the kernel and one
+in the user space, which you can include in user apps.
+
+
+
+#ifndef PACKT_IOCTL_H
+#define PACKT_IOCTL_H
+/*
+ * We need to choose a magic number for our driver, and sequential numbers
+ * for each command:
+ */
+#define EEP_MAGIC 'E'
+#define ERASE_SEQ_NO 0x01
+#define RENAME_SEQ_NO 0x02
+#define ClEAR_BYTE_SEQ_NO 0x03
+#define GET_SIZE 0x04
+/*
+ * Partition name must be 32 byte max
+ */
+#define MAX_PART_NAME 32
+/*
+ * Now let's define our ioctl numbers:
+ */
+#define EEP_ERASE _IO(EEP_MAGIC, ERASE_SEQ_NO)
+#define EEP_RENAME_PART _IOW(EEP_MAGIC, RENAME_SEQ_NO, unsigned long)
+#define EEP_GET_SIZE _IOR(EEP_MAGIC, GET_SIZE, int *)
+#endif
+
+
+long ioctl(struct file *f, unsigned int cmd, unsigned long arg);
+
+There is only one step: use a switch ... case statement and 
+return an -ENOTTY error when an undefined ioctl command is called.
+
+

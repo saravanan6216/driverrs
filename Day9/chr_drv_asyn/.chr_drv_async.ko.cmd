@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day9/chr_drv_asyn/chr_drv_async.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/Day9/chr_drv_asyn/chr_drv_async.ko /home/saravanan/Downloads/Day9/chr_drv_asyn/chr_drv_async.o /home/saravanan/Downloads/Day9/chr_drv_asyn/chr_drv_async.mod.o;  true

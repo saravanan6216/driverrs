@@ -1,0 +1,1 @@
+cmd_/home/bitsilic/Batch2_Training/Day3/Module.symvers := sed 's/\.ko$$/\.o/' /home/bitsilic/Batch2_Training/Day3/modules.order | scripts/mod/modpost -m -a  -o /home/bitsilic/Batch2_Training/Day3/Module.symvers -e -i Module.symvers   -T -

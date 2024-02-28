@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day14/chr_drv_mmap.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/Day14/chr_drv_mmap.ko /home/saravanan/Downloads/Day14/chr_drv_mmap.o /home/saravanan/Downloads/Day14/chr_drv_mmap.mod.o;  true

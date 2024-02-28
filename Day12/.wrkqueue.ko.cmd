@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day12/wrkqueue.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/Day12/wrkqueue.ko /home/saravanan/Downloads/Day12/wrkqueue.o /home/saravanan/Downloads/Day12/wrkqueue.mod.o;  true

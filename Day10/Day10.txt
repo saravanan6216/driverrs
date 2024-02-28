@@ -1,0 +1,62 @@
+Interrupts:
+-----------
+
+Its a signal/line connected cpu to get the attention of CPU.
+
+Kernel has datastructure called IRQ descriptor table .which has 'n' number of descriptors each represent one IRQ.
+
+IRQ descriptor table a kernel datastructure which is a linked list of irq request line descriptors.
+
+NR_IRQ represents no of IRQ lines.
+
+Each descriptor has 2 specfic pointers called action and handler.
+
+Handler is assigned to a instance of type hw_interrupt_type , Using which we can perform various operations like enable,disable,shutdown,ack etc... operations on IRQ line.
+
+Action pointer will point to list of struct called struct irqaction.
+It has handler() function which will point to function that is called ISR function.
+
+The drivers which intend ro register ISR now has to register to isr routines as instance of type struct irqaction. 
+
+irq line can be shared between multiple devices, so multiple irq_action instances
+
+cat /proc/interrupts
+
+lspci -v
+
+interrupt.h
+
+
+do_irq : rountine to process 0
+process 0 handles inrq
+process 1 handles process
+
+intel x86 interupt vector table structre:
+1.linux kernel configures do_irq routine as a default response function for all external interrupts
+2.do_irq is a routine of process 0,which is responsbile for allocation of interrupt stack and invoking appropriate isr
+3.4k stack ,and 8k stack - default -8k
+
+Steps executed by do_irq:
+-------------------------
+1. find int line on which irq signal was triggered
+2. look up irq descriptor table for registered isr
+3. invoke registred isr 
+4. enable irq line 
+5. execute other priority works
+
+above are schdular disabled ,means preemtion disable 
+8. invoke process schedular
+
+interrupt latency : the amount of time to serve interrupt 
+
+
+
+
+
+
+apps will stop
+blocking the interrupt of other devices
+nested irq 
+
+factors effecting latency:
+????

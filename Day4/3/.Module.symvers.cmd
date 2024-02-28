@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/Day4/3/Module.symvers := sed 's/\.ko$$/\.o/' /home/saravanan/Downloads/device_driver_class/Day4/3/modules.order | scripts/mod/modpost -m -a  -o /home/saravanan/Downloads/device_driver_class/Day4/3/Module.symvers -e -i Module.symvers   -T -

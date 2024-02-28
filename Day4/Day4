@@ -1,0 +1,59 @@
+Steps to implement and test char drivers
+----------------------------------------------------------
+1. create a device node(file)
+2. implement the driver operations and register with vfs layer 
+3. insert the driver using a kernel module
+4. write an application that initiates operations on our driver thru common file api
+
+
+sudo mknod /dev/my_cdrv c 220 0
+
+application : test_skel.c
+
+gcc test_skel.c -o test_skel
+
+ 
+VFS will maintain a list for char drivers and block drivers 
+This list will hold cdev objects. Each object will sits in a specific offset.
+Specific object in the list is called major number.
+
+Major Number : The offset in the char device list where the driver operations are pointed and is maintained by VFS.
+
+Kernel allows 'n' number of devices to share a major number 
+
+Minor Number 
+eg:Harddisk
+
+
+alloc_char_dev_region() : It will run char dev list and find the free slot and get that index 
+
+
+int alloc_chrdev_region(dev_t *dev, unsigned int firstminor, unsigned int count, char *name);
+
+Steps to implement and test char drivers
+----------------------------------------------------------
+1. implement the driver operations and register with vfs layer 
+2. create a device node(file)
+3. insert the driver using a kernel module
+4. write an application that initiates operations on our driver thru common file api
+
+
+Automatic creation of device files:
+---------------------------------------
+
+my_class = class_create (THIS_MODULE, "Virtual");
+device_create (my_class, NULL, mydev, NULL, "%s", "bitsilica_cdrv");
+        
+        
+udev is userspace framework , Is a set of scripts which will provide a utility to create device files based on kernel events.
+
+udev scripts helps to enumerate device nodes in /dev when driver gets 
+registered and remove device nodes when driver gets removed.
+
+ps -Af | grep udev
+
+
+/sys/class/Virtual
+
+
+

@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day9/chr_drv_poll/Module.symvers := sed 's/\.ko$$/\.o/' /home/saravanan/Downloads/Day9/chr_drv_poll/modules.order | scripts/mod/modpost -m -a  -o /home/saravanan/Downloads/Day9/chr_drv_poll/Module.symvers -e -i Module.symvers   -T -

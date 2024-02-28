@@ -1,0 +1,42 @@
+One of the purpose of kernel services is to provide various resources to application.
+
+Most of the operating systems put their kernel in a previllaged region /protected region.
+
+Applications are placed in low privillaged mode / user mode .
+
+Process of adding a new system call:
+------------------------------------
+/usr/src/linux-source-5.4.0/linux-source-5.4.0
+
+
+ 1.vi ./arch/arm64/include/asm/unistd32.h
+ vi ./arch/arm64/include/asm/unistd.h
+ 
+ 2. vi ./include/linux/syscalls.h
+ 
+3./usr/src/linux-source-5.4.0/linux-source-5.4.0/kernel$ vi sysctl.c
+
+
+Events: Kernel code is based on events
+1. process events
+2. interrupt/device events : higher priority ,scheduler disabled
+
+
+open:
+----
+open->sys_open->cdev.fops->open->driver_open()
+1. verify caller request and enforce driver policy 
+2. verify target dev status (wakeup)
+3. allocate resources if needed.eg:per application
+
+
+close:
+------
+close->sys_release->cdev.fops->release->driver_release()
+1. opposite to open implementation
+
+
+
+
+
+

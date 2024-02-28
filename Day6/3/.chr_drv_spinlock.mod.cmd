@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/Day6/3/chr_drv_spinlock.mod := { echo  /home/saravanan/Downloads/device_driver_class/Day6/3/chr_drv_spinlock.o;  echo; } > /home/saravanan/Downloads/device_driver_class/Day6/3/chr_drv_spinlock.mod

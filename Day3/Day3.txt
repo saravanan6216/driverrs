@@ -1,0 +1,92 @@
+#include<linux/module_param.h>
+
+module_param(val,int,S_IRUGO|S_IWUSR);
+
+MODULE_PARM_DESC(val,"Init at intialisation");
+
+insmod module_param val=500
+
+cd /sys/modules/module_param/parameters
+echo 700 > val
+
+static char *mystr = "hello";
+static int myint = 1;
+static int myarr[3] = {0, 1, 2};
+
+module_param(myint, int, S_IRUGO);
+module_param(mystr, charp, S_IRUGO);
+module_param_array(myarr, int,NULL, S_IWUSR|S_IRUSR); /* */
+
+MODULE_PARM_DESC(myint,"this is my int variable");
+MODULE_PARM_DESC(mystr,"this is my char pointer variable");
+MODULE_PARM_DESC(myarr,"this is my array of int")
+
+insmod hellomodule-params.ko mystring="sathish" myint=15 myArray=1,2,3
+ 
+objdump -h helloworld.ko
+objdump helloworld.ko -d -j .modinfo
+modinfo ./helloworld.ko 
+modinfo ./mod_param.ko
+
+/dev/i2c-0
+
+Device Drivers 
+1. (User Interaction )Kernel Specific : interact with app
+2. Hardware Specific : interact with hardware
+
+User Interaction 
+-----------------
+1. char drivers
+2. Block drivers
+3. Network drivers
+
+
+Steps to implement char drivers:
+-------------------------------
+1. create device file 
+2. implement driver operations and register with vfs 
+3. insert driver using kernel module 
+4. write application
+
+mknod /dev/bitsilica_testdev c 200 0
+
+mknod /dev/bitsilica_testdev c 200 0
+each of device file identified as unique-id 
+
+cat /proc/devices  | more 
+ls -l /dev/bitsilica_testdev
+
+
+/home/luser/Training/Day1/poky/build/tmp/work-shared/qemux86/kernel-source/include/linux/fs.h
+
+struct file_operations
+
+
+Youtube -> mycodeschool 
+
+
+
+
+struct list
+{
+	int a;
+	chat b;
+	float c;
+};
+
+static list *test;
+
+test->b;	
+
+
+
+
+
+
+
+
+
+
+
+
+

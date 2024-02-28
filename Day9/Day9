@@ -1,0 +1,10 @@
+fcntl is API using which we can change the attributes of file descriptor.
+Asynchronus notifications are alway delivered using a specific singal called SIGIO.
+SIGIO is a reserved signal for Asynchronus notification.
+
+
+fasync_helper : Is kernel API which holds the PID Of a calling process into a container .In this case it fasync struct 
+
+man poll
+
+

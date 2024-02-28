@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day16/misc.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/Day16/misc.ko /home/saravanan/Downloads/Day16/misc.o /home/saravanan/Downloads/Day16/misc.mod.o;  true

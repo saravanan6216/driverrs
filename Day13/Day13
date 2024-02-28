@@ -1,0 +1,174 @@
+Delay and timer management
+==========================
+
+There are two categories of time. The kernel uses absolute time to know what time it is, that is, the date and time of the day, whereas relative time is used by, for example, the kernel scheduler. For absolute time, there is a hardware chip called the real-time clock (RTC). 
+On the other hand,to handle relative time, the kernel relies on a CPU feature (peripheral) called a timer, 
+from the kernel's point of view, is called a kernel timer. 
+
+
+jiffies:
+Its a counter basically.
+
+Constant HZ:
+which is the number of times jiffies is incremented in one second,. Each increment is called a tick.
+In other words, HZ represents the size of a jiffy.
+
+HZ depends on the hardware and on the kernel version, and also determines how frequently the clock interrupt fires
+  
+jiffies = (seconds * HZ)  
+
+seconds = (jiffies / Hz)
+
+<linux/jiffies.h>
+extern unsigned long volatile jiffies;
+extern u64 jiffies_64;
+
+HZ =100, 32-bit machine = 497 days
+HZ=1000 , 32-BIT machine = 49.7 days
+
+
+
+eg:
+
+#include <linux/init.h>
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/timer.h>
+static struct timer_list my_timer;
+
+void my_timer_callback(unsigned long data)
+{
+ printk("%s called (%ld).\n", __FUNCTION__, jiffies);
+}
+static int __init my_init(void)
+{
+ int retval;
+ printk("Timer module loaded\n");
+ setup_timer(&my_timer, my_timer_callback, 0);
+ printk("Setup timer to fire in 300ms (%ld)\n", jiffies);
+ retval = mod_timer( &my_timer, jiffies + msecs_to_jiffies(300) );
+ if (retval)
+ printk("Timer firing failed\n");
+ return 0;
+}
+static void my_exit(void)
+{
+ int retval;
+ retval = del_timer(&my_timer);
+ /* Is timer still active (1) or no (0) */
+ if (retval)
+ printk("The timer is still in use...\n");
+ pr_info("Timer module unloaded\n");
+}
+module_init(my_init);
+module_exit(my_exit);
+MODULE_AUTHOR("csathish.micro@gmail.com>");
+MODULE_DESCRIPTION("Standard timer example");
+MODULE_LICENSE("GPL");
+
+#include <linux/delay>
+ndelay(unsigned long nsecs)
+udelay(unsigned long usecs)
+mdelay(unsigned long msecs)
+
+Memory 
+=========
+
+high level(kernel/mm ) : 
+--------------------------
+allocation happen here eg:kmalloc
+memory manager
+processor in-dependent
+
+low level(kernel/arch) : Initialisation happen here
+---------------------
+Run at intialise
+memory initialiser
+processor dependent
+
+
+Real Mode: physical address = offset
+Protected Mode :physical address = Frame number + offset
+
+
+Kernel Build
+-------------------
+make -> looks .config (Y or m)
+vmlinux -> Only with Y generated 
+
+make module install : look into arch folder and compiles there 
+then it attach with vmlinux
+
+vmlinux.bin + kernel bootstrap code = bzimage 
+kernel bootstrap code -> Processor specific 
+		      -> Responsible for switching the modes from real to protected
+		      -> Uncompressing the linux image
+					  
+
+Bios->bootloader->bzImage
+
+By the time kernel started CPU view of memory is frame view
+
+Resposnibilities of memory initialiser
+1. allocate a page list with instance of struct page ,representing each physical frame.
+2. Categorise pages into appropriate zones.
+	Zone DMA - 0 to 16MB of physical memory
+	Zone Normal - 16MB to 896MB
+	Zone High - 896MB above
+3. Intialise highlevel MM
+
+Memory Manager:
+-------------------
+Allocators :
+1. Page allocators : Allocates page size ,or multiples of page size.
+		     It directly acts on pages
+		     Its also called primary allocator, since all the remaining allicators depends on page allicator.
+
+2. Slab allocators : Allocates odd size memory eg: bytes,kb,MB etc..
+		    Its always physical contigious locations.
+					 
+3. Cache allocators : Special allocator,available only for kernel services. Cache 
+	
+4. Fragment allocators : Its of odd size,which will collect fragmented memory and gives continous location.It cannot be called directly from application.
+
+5. Boot Memory Allocators : Drivers that requires memory at boot time .
+
+Slab allocator:
+---------------
+static inline void* kmalloc(size_t size, int flags);
+		size : no bytes	
+		flags : priority flag called GFP constant.
+kmalloc(100,GFP_KERNEL|__GFP_DMA)
+	
+GFP constants defined at <linux/GFP.h>
+GFP constants made up of 2 modifiers.
+	1. Action modifiers : Type of action it should take .
+	2. Zone Modifiers : which zone to allocate the memory from
+	
+GFP_KERNEL : Normal Zone : Normal priority,
+			Standard kernel memory allocation
+			Fine for most of needs.
+			If memory is not available its a blocking call.
+			
+GFP_ATOMIC : Normal zone :  High priority
+			 No blocking .
+			 If memory is not available it return error
+			 
+GFP_USER:  Normal zone: Low priority
+			Allocates memory for user process
+			May block
+			
+__GFP_DMA : Allocates in DMA zone
+__GFP_HIGHMEM : Allocates in memory			
+
+
+			
+void kfree(const void* objp)
+	
+Cache Allocators:
+
+kmem_cache_t *ptr;
+ptr = kmem_cache_create(); //check syntax 
+kmem_cache_alloc(ptr,GFP_KERNEL);
+	
+

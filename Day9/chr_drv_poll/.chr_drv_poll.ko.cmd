@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/Day9/chr_drv_poll/chr_drv_poll.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/Day9/chr_drv_poll/chr_drv_poll.ko /home/saravanan/Downloads/Day9/chr_drv_poll/chr_drv_poll.o /home/saravanan/Downloads/Day9/chr_drv_poll/chr_drv_poll.mod.o;  true

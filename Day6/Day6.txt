@@ -1,0 +1,300 @@
+Concurrency -  Things happening at same time
+
+multiple applications running parrel and accessing same kernel resource/function.
+
+The driver programming should take care the safety of shared resource .
+
+The function which takes care of shared data are called re-entrant .
+
+We need to ensure driver functions are re-entrant
+
+#include <asm/atomic.h>
+
+
+int global_variable ;
+
+thread1()
+{
+	global_variable++; //Accessing the variable
+}
+thread2()
+{
+	global_variable++; //Accessing the variable
+}
+
+Assume the scenorio of multicore processor.
+
+To do this we need to protect the shared resource among cpu aswell.
+
+i.e.when cpu1 is executig these instrtuctions we need to block cpu2 and vice versa.
+
+The traditional way of doing this is with lock. 
+
+Kernel provides simple mechanism for these kind of operations called atomic variables.
+
+load,add,store instructions compressed into single shot instructions for atomic variables.	
+
+#include<asm/atomic_t.h>
+
+When we are doing atomic operations, that variable should be created using atomic_t or atomic64_t. So we have separate special functions for reading, writing, and arithmetic operations
+
+atomic_t global_variable; /* define etx_global_variable */
+
+int atomic_read(atomic_t *v); //This function atomically reads the value of the given atomic variable.
+void atomic_set(atomic_t *v, int i);//This function atomically sets the value to the atomic variable.
+void atomic_add(int i, atomic_t *v); //This function atomically adds value to the atomic variable.
+void atomic_sub(int i, atomic_t *v);//This function atomically subtracts the value from the atomic variable.
+void atomic_inc (atomic_t *v);
+void atomic_dec (atomic_t *v);
+void atomic_sub_and_test(int i, atomic_t *v);
+//This function atomically subtracts the value from the atomic variable and test the result is zero or not
+void atomic_dec_and_test(atomic_t *v);
+This function atomically decrements the value of the atomic variable by 1 and test the result is zero or not.
+
+eg : 
+
+atomic_t etx_global_variable = ATOMIC_INIT(0);      //Atomic integer variable
+
+int thread_function1(void *pv)
+{
+
+    atomic_inc(&etx_global_variable);
+       
+}
+
+int thread_function2(void *pv)
+{
+    
+   atomic_inc(&etx_global_variable);
+
+}
+    
+Atomic_t is good when we are working on integer arithmetic. But when it comes to bitwise atomic operation, it doesn’t work well. So kernel offers separate functions to achieve that. Atomic bit operations are very fast. These functions are architecture-dependent and are declared in <asm/bitops.h>.
+
+void set_bit(int nr, void *addr)	Atomically set the nr-th bit starting from addr
+void clear_bit(int nr, void *addr)	Atomically clear the nr-th bit starting from addr
+void change_bit(int nr, void *addr)	Atomically flip the value of the nr-th bit starting from addr
+int test_and_set_bit(int nr, void *addr)	Atomically set the nr-th bit starting from addr and return the previous value
+int test_and_clear_bit(int nr, void *addr)	Atomically clear the nr-th bit starting from addr and return the previous value
+int test_and_change_bit(int nr, void *addr)	Atomically flip the nr-th bit starting from addr and return the previous value
+int test_bit(int nr, void *addr)	Atomically return the value of the nr-th bit starting from addr
+int find_first_zero_bit(unsigned long *addr, unsigned int size)	Atomically returns the bit-number of the first zero bit, not the number of the byte containing a bit
+int find_first_bit(unsigned long *addr, unsigned int size) Atomically returns the bit-number of the first set bit, not the number of the byte containing a b
+
+
+void _set_bit(int nr, void *addr)	Non-atomically set the nr-th bit starting from addr
+void _clear_bit(int nr, void *addr)	 Non-atomically clear the nr-th bit starting from addr
+void _change_bit(int nr, void *addr)	Non-atomically flip the value of the nr-th bit starting from addr
+int _test_and_set_bit(int nr, void *addr)	Non-atomically set the nr-th bit starting from addr and return the previous value
+int _test_and_clear_bit(int nr, void *addr)	Non-atomically clear the nr-th bit starting from addr and return the previous value
+int _test_and_change_bit(int nr, void *addr)	Non-atomically flip the nr-th bit starting from addr and return the previous value
+int _test_bit(int nr, void *addr)	Non-atomically return the value of the nr-th bit starting from addr
+
+
+Race Condition
+A race condition occurs when two or more threads can access shared data and they try to change it at the same time. Because the thread scheduling algorithm can swap between threads at any time, we don’t know the order in which the threads will attempt to access the shared data. Therefore, the result of the change in data is dependent on the thread scheduling algorithm, i.e. both threads are “racing” to access/change the data.
+
+
+Locks:
+1.Waiting locks : semaphores,mutex
+2.polling locks : spinlock
+
+
+Mutex
+A mutex is a mutual exclusion lock. Only one thread can hold the lock.
+A mutex can be used to prevent the simultaneous execution of a block of code by multiple threads that are running in single or multiple processes.
+
+Mutex is used as a synchronization primitive in situations where a resource has to be shared by multiple threads simultaneously.
+
+A mutex has ownership. The thread which locks a Mutex must also unlock it
+so whenever you are accessing a shared resource that time first we lock the mutex and then access the shared resource. When we are finished with that shared resource then we unlock the Mutex.
+
+Today most major operating systems employ multitasking. Multitasking is where multiple threads can execute in parallel and thereby utilizing the CPU in an optimum way. Even though, multitasking is useful, if not implemented cautiously can lead to concurrency issues (Race condition), which can be very difficult to handle.
+
+#include<linux/mutex.h>	
+
+Initialization
+===============
+ 
+Static Method :
+---------------
+  DEFINE_MUTEX(name)
+Dynamic Method :
+---------------- 
+	struct mutex etx_mutex; 
+	mutex_init(&etx_mutex);
+
+
+
+void mutex_lock(struct mutex *lock);
+--------------------------------------
+This is used to lock/acquire the mutex exclusively for the current task. If the mutex is not available, the current task will sleep until it acquires the Mutex.
+The mutex must, later on, be released by the same task that acquired it. Recursive locking is not allowed. The task may not exit without first unlocking the mutex. Also, kernel memory where the mutex resides must not be freed with the mutex still locked. The mutex must first be initialized (or statically defined) before it can be locke
+
+int mutex_lock_interruptible(struct mutex *lock);
+-------------------------------------------------
+Locks the mutex like mutex_lock, and returns 0 if the mutex has been acquired or sleeps until the mutex becomes available. If a signal arrives while waiting for the lock then this function returns -EINTR.
+
+int mutex_trylock(struct mutex *lock);
+--------------------------------------
+This will try to acquire the mutex, without waiting (will attempt to obtain the lock, but will not sleep). Returns 1 if the mutex has been acquired successfully, and 0 on contention.
+
+ 
+void mutex_unlock(struct mutex *lock);
+----------------------------------------
+This is used to unlock/release a mutex that has been locked by a task previously.
+
+int mutex_is_locked(struct mutex *lock);
+----------------------------------------
+This function is used to check whether mutex has been locked or not.
+
+eg:
+struct mutex etx_mutex;
+
+int thread_function1(void *pv)
+{
+    
+   {
+        mutex_lock(&etx_mutex);
+        etx_global_variable++;
+        pr_info("In EmbeTronicX Thread Function1 %lu\n", etx_global_variable);
+        mutex_unlock(&etx_mutex);
+        msleep(1000);
+    }
+    return 0;
+}
+
+int thread_function2(void *pv)
+{ 
+	{
+        mutex_lock(&etx_mutex);
+        etx_global_variable++;
+        pr_info("In EmbeTronicX Thread Function2 %lu\n", etx_global_variable);
+        mutex_unlock(&etx_mutex);
+        msleep(1000);
+    }
+    return 0;
+}
+
+
+SpinLock
+========
+In the Mutex concept, when the thread is trying to lock or acquire the Mutex which is not available then that thread will go to sleep until that Mutex is available. Whereas in Spinlock it is different. The spinlock is a very simple single-holder lock. If a process attempts to acquire a spinlock and it is unavailable, the process will keep trying (spinning) until it can acquire the lock. This simplicity creates a small and fast lock.
+
+If the kernel is running on a uniprocessor and CONFIG_SMP, CONFIG_PREEMPT aren’t enabled while compiling the kernel then spinlock will not be available. Because there is no reason to have a lock when no one else can run at the same time.
+
+But if you have disabled CONFIG_SMP and enabled  CONFIG_PREEMPT then spinlock will simply disable preemption, which is sufficient to prevent any races.
+
+Initialize
+Static Method
+	DEFINE_SPINLOCK(etx_spinlock);
+	The macro given above will create a spinlock_t variable in the name of etx_spinlock and initialize to UNLOCKED STATE. 
+
+Dynamic Method
+	spinlock_t etx_spinlock;
+	spin_lock_init(&etx_spinlock);
+
+between Kernel Threads
+==========================
+	spin_lock(spinlock_t *lock) //This will take the lock if it is free, otherwise, it’ll spin until that lock is free 
+	spin_trylock(spinlock_t *lock) 
+	//Locks the spinlock if it is not already locked. If unable to obtain the lock it exits with an error and does not spin.
+	spin_unlock(spinlock_t *lock)
+	//It does the reverse of the lock. It will unlock which is locked by the above call.
+	spin_is_locked(spinlock_t *lock)
+	//This is used to check whether the lock is available or not.
+	
+	
+eg:
+	
+int thread_function1(void *pv)
+{
+     {
+        spin_lock(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "In EmbeTronicX Thread Function1 %lu\n", etx_global_variable);
+        spin_unlock(&etx_spinlock);
+        msleep(1000);
+    }
+    return 0;
+}
+int thread_function2(void *pv)
+{   
+    {
+        spin_lock(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "In EmbeTronicX Thread Function2 %lu\n", etx_global_variable);
+        spin_unlock(&etx_spinlock);
+        msleep(1000);
+    }
+    return 0;
+}	
+
+Locking between interrupts
+same as above
+
+Locking between threads and interrupts
+========================================
+spin_lock_bh(spinlock_t *lock)
+-------------------------------
+It disables soft interrupts on that CPU, then grabs the lock. This has the effect of preventing softirqs, tasklets, and bottom halves from running on the local CPU. Here the suffix ‘_bh‘ refers to “Bottom Halves“.
+
+spin_unlock_bh(spinlock_t *lock)
+------------------------------
+It will release the lock and re-enables the soft interrupts which are disabled by the above call
+
+
+int thread_function(void *pv)
+{
+   {
+        spin_lock_bh(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "In EmbeTronicX Thread Function %lu\n", etx_global_variable);
+        spin_unlock_bh(&etx_spinlock);
+        msleep(1000);
+    }
+    return 0;
+}
+/*Tasklet Function*/
+void tasklet_fn(unsigned long arg)
+{
+        spin_lock_bh(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "Executing Tasklet Function : %lu\n", etx_global_variable);
+        spin_unlock_bh(&etx_spinlock);
+}
+
+
+Locking between Hard IRQ and Bottom Halves
+============================================
+spin_lock_irq(spinlock_t *lock) //This will disable interrupts on that CPU, then grab the lock.
+spin_unlock_irq(spinlock_t *lock) // It will release the lock and re-enables the interrupts which are disabled by the above call.
+
+spin_lock_irqsave( spinlock_t *lock, unsigned long flags );
+//This will save whether interrupts were on or off in a flags word and grab the lock.
+
+spin_unlock_irqrestore( spinlock_t *lock, unsigned long flags );
+//This will release the spinlock and restores the interrupts using the flags argument.
+
+
+void tasklet_fn(unsigned long arg)
+{
+        spin_lock_irq(&etx_spinlock);
+        etx_global_variable++;
+        printk(KERN_INFO "Executing Tasklet Function : %lu\n", etx_global_variable);
+        spin_unlock_irq(&etx_spinlock);
+}
+
+//Interrupt handler for IRQ 11. 
+static irqreturn_t irq_handler(int irq,void *dev_id) {
+        spin_lock_irq(&etx_spinlock); 
+        etx_global_variable++;
+        printk(KERN_INFO "Executing ISR Function : %lu\n", etx_global_variable);
+        spin_unlock_irq(&etx_spinlock);
+        /*Scheduling Task to Tasklet*/
+        tasklet_schedule(tasklet); 
+        return IRQ_HANDLED;
+
+
+1. Spinlocks are used when critical section is small and atomic variable operations are used.
+

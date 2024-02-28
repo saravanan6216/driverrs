@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/task2/task_ldd.mod := { echo  /home/saravanan/Downloads/device_driver_class/task2/task_ldd.o;  echo; } > /home/saravanan/Downloads/device_driver_class/task2/task_ldd.mod

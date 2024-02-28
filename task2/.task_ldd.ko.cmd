@@ -1,0 +1,1 @@
+cmd_/home/saravanan/Downloads/device_driver_class/task2/task_ldd.ko := ld -r  -m elf_x86_64 -z noexecstack   --build-id=sha1  -T scripts/module.lds -o /home/saravanan/Downloads/device_driver_class/task2/task_ldd.ko /home/saravanan/Downloads/device_driver_class/task2/task_ldd.o /home/saravanan/Downloads/device_driver_class/task2/task_ldd.mod.o;  true

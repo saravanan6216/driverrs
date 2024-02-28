@@ -1,0 +1,164 @@
+Bottom Halves :
+============== 
+Soft IRQ : 
+-------
+1. Statically allocated at compile time ,Available only for static drivers . 
+2. Maximum of 32 softirq
+3. Premption disable, interrupt enable
+4. Activating  a soft irq :
+	- Register Soft irq : open_softirq()
+	- Raise Soft irq : raise_softirq()
+5. Executing a Softirq
+   - Return from Hardware irq code 
+   - By the ksoftirq thread
+   - code that explicitly check and execute soft-irq   
+
+#include<linux/interrupt.h>
+->softirq_action mysoftirq;
+ 
+Eg:
+<linux/interrupt.h>
+enum
+{
+        HI_SOFTIRQ=0,
+        TIMER_SOFTIRQ,
+        NET_TX_SOFTIRQ,
+        NET_RX_SOFTIRQ,
+        BLOCK_SOFTIRQ,
+        IRQ_POLL_SOFTIRQ,
+        TASKLET_SOFTIRQ,
+        SCHED_SOFTIRQ,
+        HRTIMER_SOFTIRQ, /* Unused, but kept as tools rely on the
+                            numbering. Sigh! */
+        RCU_SOFTIRQ,    /* Preferable RCU should always be the last softirq */
+	    MY_SOFTIRQ,
+		
+        NR_SOFTIRQS
+};
+
+Driver init 
+{
+	open_softirq(mysoftirq,func);
+}
+
+isr
+{
+  raise_softirq(mysoftirq);
+}
+
+func()
+{
+	3. process physical header ,i.e packet //Non-critical 
+	4. Queue packet for protocol layer. //Non-critical
+}
+
+Since you are adding in interrupt.h we will use only for static 
+
+
+
+Execution of Soft-IRQ
+=====================
+1. When raise_softirq() gets called specified sof-irq instance is enqueued to the list of  pending soft irq (Per CPU). top half and bottom half should execute on same CPU.
+
+2. Pending sof-irq list is cleared by do_irq routine immediatly after ISR terminated with interrupt line enabled.
+
+3. 
+	func
+	{
+		writer();
+	}
+	reader()
+	{
+		spinlock_bh()
+		...........
+		spinunlock_bh()
+	}
+	writer()
+	{
+		
+	}
+4. func()
+	{
+		writer();
+		while(1)
+		raise_softirq();
+	}	
+Soft irq may execute in the context of ksoftirq(Per CPU kernel thread).
+
+
+-> Rescheduling bottom half is required to relinuqish cpu from with in a bottomhalf when a critical resource required for the bottom half execution is not available at that point of time.
+
+
+Limitations of Soft-IRQ
+-----------------------
+-> Soft-IRQ are concurrent (Runs parallely), i.e same soft irq could run on 'n' cpu parallely, 
+-> While implementing soft irq code using mutual execlusion lock mandatory where ever needed .
+-> Using locks in interrupt context code ,will result in variable interrupt latency.
+
+Tasklets:
+===========
+
+Tasklets are dynamic sof-irq ,that can be used from within module drivers,without concurrency(mean serial). Tasklets are always executed serial.
+
+
+Usage:
+#include <linux/interrupt.h>
+
+1.Declare tasklet
+	driver_init()
+	{
+		DECLARE_TASKLET(name,func,data)
+				or
+		struct tasklet_struct mytasklet;
+		tasklet_init(mytasklet,func,data);
+	}
+2. Implement bottom half
+	void func(unsigned long data)
+
+3. schedule tasklet
+	ISR
+	{
+		ISR_Enable;
+		tasklet_schedule(&mytasklet);
+				or 
+		tasklet_hi_schedule(&mytasklet);
+	}
+
+tasklet_hi_schedule has more priority over tasklet_schedule.
+
+Execution Policy
+-----------------
+Tasklets are executed using the same policy that is applied for softirq ,since interrupt subsytem of kernel views a tasklet either as instance of type HI_SOFTIRQ or TASKLET_SOFTIRQ.
+
+
+1. Built on top of softirq
+2. Represented by two softirq
+3. Each tasklet has a tasklet_struct structure
+4. Less restrictive synchronization requirements
+5. scheduled with tasklet_schedule
+6. Executed with other soft irq
+
+
+
+-> Interrupt subsytem guarantees the following with regards to execution of tasklet.
+1. when the schedule function called ,then tasklet is guarantees to executed atleast once .
+2. strictly serialized wrt itself. but it is not wrt to another type tasklet. 	
+
+
+Work-Queue:
+==========
+Work-Queue are process context bottom half
+
+Work-queue are instance of work structure
+If ISR code is more then go for work-queue
+
+Timer bottomhalf
+================
+TIMER_SOFTIRQ
+
+
+
+
+
+
+

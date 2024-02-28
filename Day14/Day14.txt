@@ -1,0 +1,64 @@
+Cache:
+-----------
+cache is a technique of reserving some pages and using them for driver specific allocations.
+
+kmem_cache_t *ptr;
+ptr = kmem_cache_create(); // It will reserver memory
+kmem_cache_alloc(ptr,GFP_KERNEL); // it will allocate 
+
+Memory pool:
+-------------
+#include<linux/slab.h>
+#include<linux/mempool.h>
+
+mempool_t *mem;
+mempool_create();
+
+mempool it will allocate cache and on top of this cache  it can pre allocate some instances of a specific structure . 
+eg:cdev 
+
+cache simple reserve some pages which will be used by the service when ever they want.
+
+memory pools will create cache and then we allocate instances ,based on the need we will pull the instance and use.
+
+slab layer allows kernel services to create memory pools that can be used for pre-allocation of specific objects.
+
+kmalloc will allocate upto 128k.
+vmalloc is non-contigeous memory 
+
+applications:
+------------
+High memzone is specifically for app layer.
+Kernel cannot use app layer directly.
+
+int posix_memalign(void **ptr,size_t alignment,size_t size);
+
+
+1.Each process in the user space aquires a set of pages into which process code,data,and stack segments are mapped.
+2.Process pcb in the kernel space carries details about pages allocated to process and segments to which they are mapped.
+3. mm_struct instance contains reference to a list of virtual memory blocks that are mapped to the applications code/data/stack segments.
+4.each instance of vm_area_struct represents one block of the process address space.
+5. mm_struct also carries reference to the process page table with valid Page table entries (PTE).
+
+mmap:
+------
+mmap can be used to acquire memory or file .
+In drivers scenorio mmap will map device memory into process address space.
+
+ 
+mmap call flow
+-----------------
+1.applications mmap request on a file invokes do_mmap kernel routine.
+2.do_mmap allocates a new instance of struct vm_area_strcut  and fills it with details of new block attributes based on the arguements passed to mmap routine by the application.
+3.do_mmap invokes appropriate mmap support routine assigned to the file operations instance.
+
+mmap driver implementation
+---------------------------
+1. Identify physical memory region that is required to be mapped.
+2. Map physical memory region to kernel logical address space  
+3. Set page reservation indicating that i/o activity should be disabled.
+4. Map physical address region to vma instance
+
+
+
+
